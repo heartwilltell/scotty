@@ -1,2 +1,5 @@
 # scotty
-🖖👨‍💻 Zero dependencies command line framework 
+
+🖖👨‍💻 Zero dependencies library to build simple commandline apps.  
+
+
