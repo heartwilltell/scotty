@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // Command represents a program command.
@@ -20,7 +21,10 @@ type Command struct {
 	// args holds a slice of commandline arguments.
 	args []string
 	// flags holds set of commandline flags which are bind to this Command.
-	flags *flags
+	// To avoid nil pointer exception it is better to work with flags via
+	flags *flag.FlagSet
+	// flagsState holds state of flags initialization.
+	flagsState *sync.Once
 	// subcommands holds set of Command who are a subcommand to this Command.
 	subcommands map[string]*Command
 	// parent holds a pointer to a parent Command.
@@ -30,30 +34,12 @@ type Command struct {
 func (c *Command) Exec() error {
 	if !c.IsSubcommand() {
 		c.Name = filepath.Base(os.Args[0])
-		flag.CommandLine = c.Flags().flags
+		flag.CommandLine = c.Flags()
 	}
 
 	flag.Parse()
 
 	return c.exec(os.Args[1:])
-}
-
-func (c *Command) Flags() *flags {
-	if c.flags != nil {
-		return c.flags
-	}
-
-	flagSet := flag.NewFlagSet(c.Name, flag.ExitOnError)
-	flagSet.Usage = func() {
-		fmt.Printf("usage: %s [flags] COMMAND\n", c.Name)
-	}
-
-	c.flags = &flags{
-		name:  c.Name,
-		flags: flagSet,
-	}
-
-	return c.flags
 }
 
 func (c *Command) AddSubcommands(commands ...*Command) {
@@ -92,10 +78,21 @@ func (c *Command) IsSubcommand() bool {
 	return true
 }
 
+func (c *Command) Flags() *flag.FlagSet {
+	c.flagsState.Do(func() {
+		c.flags = flag.NewFlagSet(c.Name, flag.ExitOnError)
+		c.flags.Usage = func() {
+			fmt.Printf("usage: %s [flags] COMMAND\n", c.Name)
+		}
+	})
+
+	return c.flags
+}
+
 func (c *Command) exec(args []string) error {
 	c.args = args
 
-	if err := c.Flags().parse(args); err != nil {
+	if err := c.flags.Parse(args); err != nil {
 		return fmt.Errorf("%s command failed: %w", c.Name, err)
 	}
 
@@ -112,7 +109,7 @@ func (c *Command) exec(args []string) error {
 
 		// Looks line the argument is not it the list of known subcommands.
 		// Let's print the usage and return an error.
-		c.flags.flags.Usage()
+		c.flags.Usage()
 
 		return fmt.Errorf("%s: unknown command: %s", c.Name, args[0])
 	}
