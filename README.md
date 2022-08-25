@@ -1,5 +1,5 @@
-# scotty
+# scotty [WIP]
 
-🖖👨‍💻 Zero dependencies library to build simple commandline apps.  
+🖖👨‍💻 Zero dependencies library for building simple commandline apps.
 
 
