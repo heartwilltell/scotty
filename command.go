@@ -32,6 +32,8 @@ type Command struct {
 }
 
 func (c *Command) Exec() error {
+	// If the binary has been named differently that root command.
+	//
 	if !c.IsSubcommand() {
 		c.Name = filepath.Base(os.Args[0])
 		flag.CommandLine = c.Flags()
@@ -78,12 +80,23 @@ func (c *Command) IsSubcommand() bool {
 	return true
 }
 
+// TraverseToRoot traverse all command chain until it reaches root.
+func (c *Command) TraverseToRoot() *Command {
+	if c.IsSubcommand() {
+		return c.parent.TraverseToRoot()
+	}
+
+	return c
+}
+
 func (c *Command) Flags() *flag.FlagSet {
+	if c.flagsState == nil {
+		c.flagsState = &sync.Once{}
+	}
+
 	c.flagsState.Do(func() {
 		c.flags = flag.NewFlagSet(c.Name, flag.ExitOnError)
-		c.flags.Usage = func() {
-			fmt.Printf("usage: %s [flags] COMMAND\n", c.Name)
-		}
+		c.flags.Usage = c.usage
 	})
 
 	return c.flags
@@ -115,6 +128,7 @@ func (c *Command) exec(args []string) error {
 	}
 
 	if c.Run == nil {
+		c.Flags().Usage()
 		return nil
 	}
 
