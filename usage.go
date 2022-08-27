@@ -21,7 +21,7 @@ func (c *Command) usage() {
 		b.WriteString(fmt.Sprintf("%s\n\n", root.Name))
 	}
 
-	b.WriteString(fmt.Sprintf("Usage:\n"))
+	b.WriteString("Usage:\n")
 	b.WriteString(fmt.Sprintf("  %s [command]\n", c.Name))
 
 	printSubcommands(&b, c.subcommands)
@@ -39,7 +39,7 @@ func printSubcommands(b *strings.Builder, subcommands map[string]*Command) {
 		return
 	}
 
-	b.WriteString(fmt.Sprintf("\nAvailable Commands:\n"))
+	b.WriteString("\nAvailable Commands:\n")
 
 	sorted := sortedSubcommands(subcommands)
 	longest := 0
@@ -77,7 +77,7 @@ func printFlags(b *strings.Builder, flags *flag.FlagSet) {
 	})
 
 	if flagCount > 0 {
-		b.WriteString(fmt.Sprintf("\nFlags:\n"))
+		b.WriteString("\nFlags:\n")
 		flags.VisitAll(func(f *flag.Flag) {
 			fType := reflect.TypeOf(f.Value).Elem().Kind().String()
 

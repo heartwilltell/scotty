@@ -18,8 +18,6 @@ type Command struct {
 	Long string
 	// Run represents a function which wraps and executes the logic of the command.
 	Run func(cmd *Command, args []string) error
-	// args holds a slice of commandline arguments.
-	args []string
 	// flags holds set of commandline flags which are bind to this Command.
 	// To avoid nil pointer exception it is better to work with flags via
 	flags *flag.FlagSet
@@ -33,12 +31,12 @@ type Command struct {
 
 func (c *Command) Exec() error {
 	// If the binary has been named differently that root command.
-	//
 	if !c.IsSubcommand() {
 		c.Name = filepath.Base(os.Args[0])
 		flag.CommandLine = c.Flags()
 	}
 
+	// Parse all the program arguments.
 	flag.Parse()
 
 	return c.exec(os.Args[1:])
@@ -102,10 +100,10 @@ func (c *Command) Flags() *flag.FlagSet {
 	return c.flags
 }
 
-func (c *Command) exec(args []string) error {
-	c.args = args
+func (c *Command) Args() []string { return c.Flags().Args() }
 
-	if err := c.flags.Parse(args); err != nil {
+func (c *Command) exec(args []string) error {
+	if err := c.Flags().Parse(args); err != nil {
 		return fmt.Errorf("%s command failed: %w", c.Name, err)
 	}
 
