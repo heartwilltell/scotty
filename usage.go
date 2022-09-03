@@ -22,15 +22,28 @@ func (c *Command) usage() {
 	}
 
 	b.WriteString("Usage:\n")
-	b.WriteString(fmt.Sprintf("  %s [command]\n", c.Name))
+	printCommandCallUsage(&b, c)
 
 	printSubcommands(&b, c.subcommands)
 	printFlags(&b, c.Flags())
-
-	b.WriteString(fmt.Sprintf("\nUse '%s [command] -help' for more information about a command.\n", c.Name))
+	printHelpSuggestion(&b, c)
 
 	if _, err := fmt.Fprintln(c.Flags().Output(), b.String()); err != nil {
 		fmt.Println(b.String())
+	}
+}
+
+func printCommandCallUsage(b *strings.Builder, c *Command) {
+	b.WriteString(fmt.Sprintf("  %s ", commandsChain(c)))
+
+	if hasFlags(c.Flags()) {
+		b.WriteString("<flags> ")
+	}
+
+	if len(c.subcommands) > 0 {
+		b.WriteString("[command]\n")
+	} else {
+		b.WriteString("[arguments...]\n")
 	}
 }
 
@@ -89,6 +102,10 @@ func printFlags(b *strings.Builder, flags *flag.FlagSet) {
 	}
 }
 
+func printHelpSuggestion(b *strings.Builder, c *Command) {
+	b.WriteString(fmt.Sprintf("\nUse '%s -help' for more information about a command.\n", commandsChain(c)))
+}
+
 func sortedSubcommands(subcommands map[string]*Command) []*Command {
 	commands := make([]*Command, 0, len(subcommands))
 
@@ -103,6 +120,40 @@ func sortedSubcommands(subcommands map[string]*Command) []*Command {
 	return commands
 }
 
+func commandsChain(c *Command) string {
+	commands := make([]string, 0, 1)
+
+	walkCommandsChain(c, func(name string) {
+		commands = append(commands, name)
+	})
+
+	// Reversing tha slice to make the correct order.
+	for i, j := 0, len(commands)-1; i < j; i, j = i+1, j-1 {
+		commands[i], commands[j] = commands[j], commands[i]
+	}
+
+	var chain string
+
+	for i, cmd := range commands {
+		chain += cmd
+		if i != len(commands)-1 {
+			chain += " "
+		}
+	}
+
+	return chain
+}
+
+func walkCommandsChain(c *Command, f func(name string)) {
+	f(c.Name)
+
+	if c.parent == nil {
+		return
+	}
+
+	walkCommandsChain(c.parent, f)
+}
+
 func indent(name string, longest, offset int) string {
 	whitespace := ""
 	for i := utf8.RuneCountInString(name); i < longest+offset; i++ {
@@ -110,4 +161,12 @@ func indent(name string, longest, offset int) string {
 	}
 
 	return whitespace
+}
+
+func hasFlags(flags *flag.FlagSet) bool {
+	has := false
+
+	flags.VisitAll(func(_ *flag.Flag) { has = true })
+
+	return has
 }
