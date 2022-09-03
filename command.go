@@ -104,7 +104,7 @@ func (c *Command) Args() []string { return c.Flags().Args() }
 
 func (c *Command) exec(args []string) error {
 	if err := c.Flags().Parse(args); err != nil {
-		return fmt.Errorf("%s command failed: %w", c.Name, err)
+		return fmt.Errorf("command failed: %w", err)
 	}
 
 	// Check if the positional arguments is a subcommand.
@@ -122,7 +122,7 @@ func (c *Command) exec(args []string) error {
 		// Let's print the usage and return an error.
 		c.flags.Usage()
 
-		return fmt.Errorf("%s: unknown command: %s", c.Name, args[0])
+		return fmt.Errorf("unknown command: %s", args[0])
 	}
 
 	if c.Run == nil {
@@ -131,7 +131,7 @@ func (c *Command) exec(args []string) error {
 	}
 
 	if err := c.Run(c, args); err != nil {
-		return fmt.Errorf("%s command failed: %w", c.Name, err)
+		return fmt.Errorf("command failed: %w", err)
 	}
 
 	return nil
