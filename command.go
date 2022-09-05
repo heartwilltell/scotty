@@ -20,6 +20,7 @@ type Command struct {
 	Run func(cmd *Command, args []string) error
 	// flags holds set of commandline flags which are bind to this Command.
 	// To avoid nil pointer exception it is better to work with flags via
+	// Command.Flags method.
 	flags *flag.FlagSet
 	// flagsState holds state of flags initialization.
 	flagsState *sync.Once
