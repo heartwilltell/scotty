@@ -39,7 +39,10 @@ func (c *Command) Exec() error {
 	// Parse all the program arguments.
 	flag.Parse()
 
-	return c.exec(os.Args[1:])
+	fmt.Println("Exec os.Args:", os.Args)
+	fmt.Println("Exec fs args:", c.Flags().Args())
+
+	return c.exec(c.Flags().Args())
 }
 
 func (c *Command) AddSubcommands(commands ...*Command) {
@@ -130,7 +133,7 @@ func (c *Command) exec(args []string) error {
 		return nil
 	}
 
-	if err := c.Run(c, args); err != nil {
+	if err := c.Run(c, c.Flags().Args()); err != nil {
 		return fmt.Errorf("command failed: %w", err)
 	}
 
