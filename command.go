@@ -39,9 +39,6 @@ func (c *Command) Exec() error {
 	// Parse all the program arguments.
 	flag.Parse()
 
-	fmt.Println("Exec os.Args:", os.Args)
-	fmt.Println("Exec fs args:", c.Flags().Args())
-
 	return c.exec(c.Flags().Args())
 }
 
