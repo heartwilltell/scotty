@@ -8,8 +8,8 @@ Basically it is a thin wrapper around standard `flag.FlagSet` type.
 
 [![](https://goreportcard.com/badge/github.com/heartwilltell/scotty)](https://goreportcard.com/report/github.com/heartwilltell/scotty)
 [![](https://pkg.go.dev/badge/github.com/heartwilltell/scotty?utm_source=godoc)](https://pkg.go.dev/github.com/heartwilltell/scotty)
-[![Build](https://github.com/heartwilltell/scotty/actions/workflows/pr.yml/badge.svg?branch=master&event=push)](https://github.com/heartwilltell/scotty/actions/workflows/pr.yml)
-[![codecov](https://codecov.io/gh/heartwilltell/scotty/branch/master/graph/badge.svg?token=JFY9EQ4F2A)](https://codecov.io/gh/heartwilltell/scotty)
+[![Build](https://github.com/heartwilltell/scotty/actions/workflows/pr.yml/badge.svg?branch=main&event=push)](https://github.com/heartwilltell/scotty/actions/workflows/pr.yml)
+[![codecov](https://codecov.io/gh/heartwilltell/scotty/branch/main/graph/badge.svg?token=JFY9EQ4F2A)](https://codecov.io/gh/heartwilltell/scotty)
 
 ## Features
 
