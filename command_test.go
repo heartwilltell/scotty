@@ -185,7 +185,7 @@ func TestCommand_exec(t *testing.T) {
 			wantErr: nil,
 		},
 
-		"Subcommand exec": {
+		"Subcommand execCommand": {
 			cmd: func() *Command {
 				cmd := &Command{Name: "test"}
 				cmd.AddSubcommands(&Command{
@@ -216,7 +216,7 @@ func TestCommand_exec(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := tc.cmd.exec(tc.args)
+			got := tc.cmd.execCommand(tc.args)
 
 			if !reflect.DeepEqual(got, tc.wantErr) {
 				t.Errorf("Expected := %#v, got := %#v", tc.wantErr, got)

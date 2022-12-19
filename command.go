@@ -23,13 +23,14 @@ type Command struct {
 	// Command.Flags method.
 	flags *flag.FlagSet
 	// flagsState holds state of flags initialization.
-	flagsState *sync.Once
+	flagsState sync.Once
 	// subcommands holds set of Command who are a subcommand to this Command.
 	subcommands map[string]*Command
 	// parent holds a pointer to a parent Command.
 	parent *Command
 }
 
+// Exec traverses to the root command and calls Command.execCommand.
 func (c *Command) Exec() error {
 	// If the binary has been named differently that root command.
 	if !c.IsSubcommand() {
@@ -40,9 +41,10 @@ func (c *Command) Exec() error {
 	// Parse all the program arguments.
 	flag.Parse()
 
-	return c.exec(c.Flags().Args())
+	return c.execCommand(c.Flags().Args())
 }
 
+// AddSubcommands takes variadic slice of commands and add them as subcommands.
 func (c *Command) AddSubcommands(commands ...*Command) {
 	if c.subcommands == nil {
 		c.subcommands = make(map[string]*Command, len(commands))
@@ -88,11 +90,8 @@ func (c *Command) TraverseToRoot() *Command {
 	return c
 }
 
+// Flags returns internal *flag.FlagSet to bind flags to.
 func (c *Command) Flags() *flag.FlagSet {
-	if c.flagsState == nil {
-		c.flagsState = &sync.Once{}
-	}
-
 	c.flagsState.Do(func() {
 		c.flags = flag.NewFlagSet(c.Name, flag.ExitOnError)
 		c.flags.Usage = c.usage
@@ -101,9 +100,11 @@ func (c *Command) Flags() *flag.FlagSet {
 	return c.flags
 }
 
+// Args returns the non flag positional arguments which are passed to the command.
 func (c *Command) Args() []string { return c.Flags().Args() }
 
-func (c *Command) exec(args []string) error {
+// execCommand parse and validates all flags and args executes the Run function.
+func (c *Command) execCommand(args []string) error {
 	if err := c.Flags().Parse(args); err != nil {
 		return fmt.Errorf("command failed: %w", err)
 	}
@@ -112,11 +113,7 @@ func (c *Command) exec(args []string) error {
 	if len(args) > 0 && len(c.subcommands) > 0 {
 		if subcommand, ok := c.subcommands[args[0]]; ok {
 			// Subcommand has been found and should be executed.
-			if err := subcommand.exec(args[1:]); err != nil {
-				return err
-			}
-
-			return nil
+			return subcommand.execCommand(args[1:])
 		}
 
 		// Looks line the argument is not it the list of known subcommands.
