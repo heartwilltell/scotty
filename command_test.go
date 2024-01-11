@@ -253,4 +253,5 @@ func helperSetTestingFlags(t *testing.T, cmd *Command) {
 	cmd.Flags().String("test.testlogfile", "", "")
 	cmd.Flags().String("test.timeout", "", "")
 	cmd.Flags().String("test.coverprofile", "", "")
+	cmd.Flags().String("test.gocoverdir", "", "")
 }
