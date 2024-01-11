@@ -10,8 +10,6 @@ on:
       - main
 
   pull_request:
-    paths-ignore:
-      - '.github/workflows/pr.yml'
     branches:
       - main
 
