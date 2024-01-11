@@ -70,7 +70,7 @@ func printSubcommands(b *strings.Builder, subcommands map[string]*Command) {
 	}
 }
 
-func printFlags(b *strings.Builder, flags *flag.FlagSet) {
+func printFlags(b *strings.Builder, flags *FlagSet) {
 	if b == nil || flags == nil {
 		return
 	}
@@ -163,7 +163,7 @@ func indent(name string, longest, offset int) string {
 	return whitespace
 }
 
-func hasFlags(flags *flag.FlagSet) bool {
+func hasFlags(flags *FlagSet) bool {
 	has := false
 
 	flags.VisitAll(func(_ *flag.Flag) { has = true })
