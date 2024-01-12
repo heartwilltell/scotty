@@ -94,7 +94,6 @@ func TestCommand_AddSubcommands(t *testing.T) {
 
 	// Additional values for some test cases.
 	testCmd1 := &Command{Name: "panic-add-self"}
-
 	testCmd2 := &Command{Name: "panic-already-attached"}
 	testCmd3 := &Command{Name: "panic-already-attached_attached"}
 	testCmd2.AddSubcommands(testCmd3)
@@ -254,4 +253,5 @@ func helperSetTestingFlags(t *testing.T, cmd *Command) {
 	cmd.Flags().String("test.testlogfile", "", "")
 	cmd.Flags().String("test.timeout", "", "")
 	cmd.Flags().String("test.coverprofile", "", "")
+	cmd.Flags().String("test.gocoverdir", "", "")
 }

@@ -12,20 +12,30 @@ import (
 type Command struct {
 	// Name represents command name and argument by which command will be called.
 	Name string
+
 	// Short represents short description of the command.
 	Short string
+
 	// Long represents short description of the command.
 	Long string
+
+	// SetFlags represents function which can be used to set flags.
+	SetFlags func(flags *FlagSet)
+
 	// Run represents a function which wraps and executes the logic of the command.
 	Run func(cmd *Command, args []string) error
+
 	// flags holds set of commandline flags which are bind to this Command.
 	// To avoid nil pointer exception it is better to work with flags via
 	// Command.Flags method.
-	flags *flag.FlagSet
+	flags *FlagSet
+
 	// flagsState holds state of flags initialization.
 	flagsState sync.Once
+
 	// subcommands holds set of Command who are a subcommand to this Command.
 	subcommands map[string]*Command
+
 	// parent holds a pointer to a parent Command.
 	parent *Command
 }
@@ -35,7 +45,7 @@ func (c *Command) Exec() error {
 	// If the binary has been named differently that root command.
 	if !c.IsSubcommand() {
 		c.Name = filepath.Base(os.Args[0])
-		flag.CommandLine = c.Flags()
+		flag.CommandLine = c.Flags().FlagSet
 	}
 
 	// Parse all the program arguments.
@@ -91,10 +101,15 @@ func (c *Command) TraverseToRoot() *Command {
 }
 
 // Flags returns internal *flag.FlagSet to bind flags to.
-func (c *Command) Flags() *flag.FlagSet {
+func (c *Command) Flags() *FlagSet {
 	c.flagsState.Do(func() {
-		c.flags = flag.NewFlagSet(c.Name, flag.ExitOnError)
+		c.flags = &FlagSet{
+			FlagSet: flag.NewFlagSet(c.Name, flag.ExitOnError),
+		}
 		c.flags.Usage = c.usage
+		if c.SetFlags != nil {
+			c.SetFlags(c.flags)
+		}
 	})
 
 	return c.flags

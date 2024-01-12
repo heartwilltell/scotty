@@ -38,6 +38,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/heartwilltell/scotty"
@@ -66,6 +67,22 @@ func main() {
 	subCmd.Flags().StringVar(&logLVL, "loglevel", "info",
 		"set logging level: 'debug', 'info', 'warning', 'error'",
 	)
+
+	// Or use the SetFlags function.
+
+	subCmd2 := scotty.Command{
+		Name:  "subcommand2",
+		Short: "Subcommands that does something",
+		SetFlags: func(flags *FlagSet) {
+			flags.StringVar(&logLVL, "loglevel", "info",
+				"set logging level: 'debug', 'info', 'warning', 'error'",
+			)
+        },
+		Run: func(cmd *scotty.Command, args []string) error {
+			// Do some your stuff here.
+			return nil
+		},
+	}
 
 	// Attach subcommand to the root command. 
 	rootCmd.AddSubcommands(&subCmd)

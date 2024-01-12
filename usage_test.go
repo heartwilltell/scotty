@@ -7,24 +7,26 @@ import (
 
 func Test_hasFlags(t *testing.T) {
 	type tcase struct {
-		flags *flag.FlagSet
+		flags *FlagSet
 		want  bool
 	}
 
 	tests := map[string]tcase{
 		"Has": {
-			flags: func() *flag.FlagSet {
-				set := flag.NewFlagSet("test", flag.ExitOnError)
+			flags: func() *FlagSet {
+				set := &FlagSet{FlagSet: flag.NewFlagSet("test", flag.ExitOnError)}
 				set.String("test-flag", "", "")
 				return set
 			}(),
+
 			want: true,
 		},
 		"Doesn't": {
-			flags: func() *flag.FlagSet {
-				set := flag.NewFlagSet("test", flag.ExitOnError)
+			flags: func() *FlagSet {
+				set := &FlagSet{FlagSet: flag.NewFlagSet("test", flag.ExitOnError)}
 				return set
 			}(),
+
 			want: false,
 		},
 	}
