@@ -87,7 +87,7 @@ func (f *FlagSet) Uint64VarE(p *uint64, flagName, envName string, value uint64, 
 // If the value of environment variable can't be parsed to destination type the default value will be used.
 func (f *FlagSet) DurationVarE(p *time.Duration, flagName, envName string, value time.Duration, usage string) {
 	parsed, err := time.ParseDuration(os.Getenv(envName))
-	f.FlagSet.DurationVar(p, flagName, tern(err == nil, parsed, value), usage)
+	f.FlagSet.DurationVar(p, flagName, tern[time.Duration](err == nil, parsed, value), usage)
 }
 
 //nolint:revive // flag-parameter is ok here.
