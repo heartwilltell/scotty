@@ -118,10 +118,38 @@ func (c *Command) Flags() *FlagSet {
 // Args returns the non flag positional arguments which are passed to the command.
 func (c *Command) Args() []string { return c.Flags().Args() }
 
+// BindConfig binds a config struct to the command's flagset.
+// The cfg argument must be a pointer to a struct with appropriate tags.
+// Tags supported: flag, env, default, usage, required.
+// Call this before Exec() to set up the binding.
+func (c *Command) BindConfig(cfg any) error {
+	flags := c.Flags()
+	flags.config = cfg
+
+	return bindConfigToFlagSet(flags, cfg)
+}
+
+// Config returns the bound config. Returns nil if no config was bound.
+// Use type assertion or the generic helpers MustConfig/GetConfig for typed access.
+func (c *Command) Config() any {
+	return c.Flags().config
+}
+
 // execCommand parse and validates all flags and args executes the Run function.
 func (c *Command) execCommand(args []string) error {
 	if err := c.Flags().Parse(args); err != nil {
 		return fmt.Errorf("command failed: %w", err)
+	}
+
+	// Validate required fields if config is bound.
+	if c.flags.config != nil {
+		if err := validateRequiredFields(c.flags.requiredFields); err != nil {
+			return fmt.Errorf("command failed: %w", err)
+		}
+
+		if err := validateConfig(c.flags.config); err != nil {
+			return fmt.Errorf("command failed: %w", err)
+		}
 	}
 
 	// Check if the positional arguments is a subcommand.
