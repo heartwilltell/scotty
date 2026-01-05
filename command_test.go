@@ -154,7 +154,7 @@ func TestCommand_Args(t *testing.T) {
 		// "flag provided but not defined: -test.timeout".
 		helperSetTestingFlags(t, cmd)
 
-		want := make([]string, 0, 0)
+		want := make([]string, 0)
 
 		if err := cmd.Exec(); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
