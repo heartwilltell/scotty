@@ -19,6 +19,21 @@ type FlagSet struct {
 	requiredFields []requiredFieldInfo
 }
 
+// BindConfig binds a config struct to the flagset.
+// The cfg argument must be a pointer to a struct with appropriate tags.
+// Tags supported: flag, env, default, usage, required.
+func (f *FlagSet) BindConfig(cfg any) error {
+	f.config = cfg
+
+	return bindConfigToFlagSet(f, cfg)
+}
+
+// Config returns the bound config. Returns nil if no config was bound.
+// Use type assertion for typed access.
+func (f *FlagSet) Config() any {
+	return f.config
+}
+
 // StringVarE defines a string flag and environment variable with specified name, default value, and usage string.
 // The argument p points to a string variable in which to store the value of the flag or environment variable.
 // Flag has priority over environment variable. If flag not set the environment variable value will be used.
@@ -87,7 +102,7 @@ func (f *FlagSet) Uint64VarE(p *uint64, flagName, envName string, value uint64, 
 // If the value of environment variable can't be parsed to destination type the default value will be used.
 func (f *FlagSet) DurationVarE(p *time.Duration, flagName, envName string, value time.Duration, usage string) {
 	parsed, err := time.ParseDuration(os.Getenv(envName))
-	f.FlagSet.DurationVar(p, flagName, tern[time.Duration](err == nil, parsed, value), usage)
+	f.FlagSet.DurationVar(p, flagName, tern(err == nil, parsed, value), usage)
 }
 
 //nolint:revive // flag-parameter is ok here.
