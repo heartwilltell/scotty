@@ -19,6 +19,21 @@ type FlagSet struct {
 	requiredFields []requiredFieldInfo
 }
 
+// BindConfig binds a config struct to the flagset.
+// The cfg argument must be a pointer to a struct with appropriate tags.
+// Tags supported: flag, env, default, usage, required.
+func (f *FlagSet) BindConfig(cfg any) error {
+	f.config = cfg
+
+	return bindConfigToFlagSet(f, cfg)
+}
+
+// Config returns the bound config. Returns nil if no config was bound.
+// Use type assertion for typed access.
+func (f *FlagSet) Config() any {
+	return f.config
+}
+
 // StringVarE defines a string flag and environment variable with specified name, default value, and usage string.
 // The argument p points to a string variable in which to store the value of the flag or environment variable.
 // Flag has priority over environment variable. If flag not set the environment variable value will be used.

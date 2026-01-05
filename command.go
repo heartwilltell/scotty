@@ -106,7 +106,9 @@ func (c *Command) Flags() *FlagSet {
 		c.flags = &FlagSet{
 			FlagSet: flag.NewFlagSet(c.Name, flag.ExitOnError),
 		}
+
 		c.flags.Usage = c.usage
+
 		if c.SetFlags != nil {
 			c.SetFlags(c.flags)
 		}
