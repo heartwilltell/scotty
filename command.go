@@ -22,6 +22,10 @@ type Command struct {
 	// SetFlags represents function which can be used to set flags.
 	SetFlags func(flags *FlagSet)
 
+	// SetPersistentFlags represents function which can be used to set
+	// persistent flags. Persistent flags are inherited by all subcommands.
+	SetPersistentFlags func(flags *FlagSet)
+
 	// Run represents a function which wraps and executes the logic of the command.
 	Run func(cmd *Command, args []string) error
 
@@ -49,7 +53,7 @@ func (c *Command) Exec() error {
 	}
 
 	// Parse all the program arguments.
-	flag.Parse()
+	flag.Parse() //nolint:revive // CLI library intentionally calls flag.Parse in Exec.
 
 	return c.execCommand(c.Flags().Args())
 }
@@ -68,7 +72,11 @@ func (c *Command) AddSubcommands(commands ...*Command) {
 		// Check if command has already been attached.
 		if cmd, ok := c.subcommands[command.Name]; ok {
 			if cmd != command {
-				panic(fmt.Errorf("different command with a name '%s' already attached to '%s' command", command.Name, c.Name))
+				panic(fmt.Errorf(
+					"different command with a name '%s' already attached to '%s' command",
+					command.Name,
+					c.Name,
+				))
 			}
 
 			continue
@@ -109,6 +117,8 @@ func (c *Command) Flags() *FlagSet {
 
 		c.flags.Usage = c.usage
 
+		c.inheritPersistentFlags(c.flags)
+
 		if c.SetFlags != nil {
 			c.SetFlags(c.flags)
 		}
@@ -135,6 +145,18 @@ func (c *Command) BindConfig(cfg any) error {
 // Use type assertion or the generic helpers MustConfig/GetConfig for typed access.
 func (c *Command) Config() any {
 	return c.Flags().config
+}
+
+// inheritPersistentFlags registers persistent flags from all ancestors
+// (root first, then down to self) onto the given FlagSet.
+func (c *Command) inheritPersistentFlags(flags *FlagSet) {
+	if c.parent != nil {
+		c.parent.inheritPersistentFlags(flags)
+	}
+
+	if c.SetPersistentFlags != nil {
+		c.SetPersistentFlags(flags)
+	}
 }
 
 // execCommand parse and validates all flags and args executes the Run function.

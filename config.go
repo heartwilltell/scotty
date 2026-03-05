@@ -2,7 +2,6 @@ package scotty
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -54,6 +53,14 @@ type requiredFieldInfo struct {
 	fieldPtr  reflect.Value
 }
 
+// fieldOpts holds options for binding a struct field to a flag.
+type fieldOpts struct {
+	flagName   string
+	envName    string
+	defaultVal string
+	usage      string
+}
+
 // bindConfigToFlagSet uses reflection to bind struct fields to flags.
 // cfg must be a pointer to a struct.
 func bindConfigToFlagSet(f *FlagSet, cfg any) error {
@@ -88,7 +95,14 @@ func bindConfigToFlagSet(f *FlagSet, cfg any) error {
 		usage := field.Tag.Get(tagUsage)
 		required := field.Tag.Get(tagRequired) == "true"
 
-		if err := bindField(f, fieldVal, flagName, envName, defaultVal, usage); err != nil {
+		opts := fieldOpts{
+			flagName:   flagName,
+			envName:    envName,
+			defaultVal: defaultVal,
+			usage:      usage,
+		}
+
+		if err := bindField(f, fieldVal, opts); err != nil {
 			return fmt.Errorf("binding field %s: %w", field.Name, err)
 		}
 
@@ -107,80 +121,110 @@ func bindConfigToFlagSet(f *FlagSet, cfg any) error {
 
 // bindField binds a single struct field to a flag based on its type.
 //
-//nolint:cyclop // Switch on types is inherently complex.
-func bindField(f *FlagSet, fieldVal reflect.Value, flagName, envName, defaultVal, usage string) error {
+//nolint:cyclop,revive // Switch on types is inherently complex.
+func bindField(f *FlagSet, fieldVal reflect.Value, opts fieldOpts) error {
 	switch fieldVal.Kind() {
 	case reflect.String:
-		ptr := fieldVal.Addr().Interface().(*string)
-		if envName != "" {
-			f.StringVarE(ptr, flagName, envName, defaultVal, usage)
+		ptr, ok := fieldVal.Addr().Interface().(*string)
+		if !ok {
+			return fmt.Errorf("invalid type for string field")
+		}
+		if opts.envName != "" {
+			f.StringVarE(ptr, opts.flagName, opts.envName, opts.defaultVal, opts.usage)
 		} else {
-			f.StringVar(ptr, flagName, defaultVal, usage)
+			f.StringVar(ptr, opts.flagName, opts.defaultVal, opts.usage)
 		}
 
 	case reflect.Bool:
-		ptr := fieldVal.Addr().Interface().(*bool)
-		def, _ := strconv.ParseBool(defaultVal)
-		if envName != "" {
-			f.BoolVarE(ptr, flagName, envName, def, usage)
+		ptr, ok := fieldVal.Addr().Interface().(*bool)
+		if !ok {
+			return fmt.Errorf("invalid type for bool field")
+		}
+		parsed, err := strconv.ParseBool(opts.defaultVal)
+		def := tern(err == nil, parsed, false)
+		if opts.envName != "" {
+			f.BoolVarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 		} else {
-			f.BoolVar(ptr, flagName, def, usage)
+			f.BoolVar(ptr, opts.flagName, def, opts.usage)
 		}
 
 	case reflect.Int:
-		ptr := fieldVal.Addr().Interface().(*int)
-		def, _ := strconv.Atoi(defaultVal)
-		if envName != "" {
-			f.IntVarE(ptr, flagName, envName, def, usage)
+		ptr, ok := fieldVal.Addr().Interface().(*int)
+		if !ok {
+			return fmt.Errorf("invalid type for int field")
+		}
+		parsed, err := strconv.Atoi(opts.defaultVal)
+		def := tern(err == nil, parsed, 0)
+		if opts.envName != "" {
+			f.IntVarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 		} else {
-			f.IntVar(ptr, flagName, def, usage)
+			f.IntVar(ptr, opts.flagName, def, opts.usage)
 		}
 
 	case reflect.Int64:
-		// Check for time.Duration specifically.
 		if fieldVal.Type() == reflect.TypeOf(time.Duration(0)) {
-			ptr := fieldVal.Addr().Interface().(*time.Duration)
-			def, _ := time.ParseDuration(defaultVal)
-			if envName != "" {
-				f.DurationVarE(ptr, flagName, envName, def, usage)
+			ptr, ok := fieldVal.Addr().Interface().(*time.Duration)
+			if !ok {
+				return fmt.Errorf("invalid type for duration field")
+			}
+			parsed, err := time.ParseDuration(opts.defaultVal)
+			def := tern(err == nil, parsed, 0)
+			if opts.envName != "" {
+				f.DurationVarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 			} else {
-				f.DurationVar(ptr, flagName, def, usage)
+				f.DurationVar(ptr, opts.flagName, def, opts.usage)
 			}
 		} else {
-			ptr := fieldVal.Addr().Interface().(*int64)
-			def, _ := strconv.ParseInt(defaultVal, 10, 64)
-			if envName != "" {
-				f.Int64VarE(ptr, flagName, envName, def, usage)
+			ptr, ok := fieldVal.Addr().Interface().(*int64)
+			if !ok {
+				return fmt.Errorf("invalid type for int64 field")
+			}
+			parsed, err := strconv.ParseInt(opts.defaultVal, 10, 64)
+			def := tern(err == nil, parsed, int64(0))
+			if opts.envName != "" {
+				f.Int64VarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 			} else {
-				f.Int64Var(ptr, flagName, def, usage)
+				f.Int64Var(ptr, opts.flagName, def, opts.usage)
 			}
 		}
 
 	case reflect.Uint:
-		ptr := fieldVal.Addr().Interface().(*uint)
-		def, _ := strconv.ParseUint(defaultVal, 10, 64)
-		if envName != "" {
-			f.UintVarE(ptr, flagName, envName, uint(def), usage)
+		ptr, ok := fieldVal.Addr().Interface().(*uint)
+		if !ok {
+			return fmt.Errorf("invalid type for uint field")
+		}
+		parsed, err := strconv.ParseUint(opts.defaultVal, 10, 64)
+		def := tern(err == nil, uint(parsed), uint(0))
+		if opts.envName != "" {
+			f.UintVarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 		} else {
-			f.UintVar(ptr, flagName, uint(def), usage)
+			f.UintVar(ptr, opts.flagName, def, opts.usage)
 		}
 
 	case reflect.Uint64:
-		ptr := fieldVal.Addr().Interface().(*uint64)
-		def, _ := strconv.ParseUint(defaultVal, 10, 64)
-		if envName != "" {
-			f.Uint64VarE(ptr, flagName, envName, def, usage)
+		ptr, ok := fieldVal.Addr().Interface().(*uint64)
+		if !ok {
+			return fmt.Errorf("invalid type for uint64 field")
+		}
+		parsed, err := strconv.ParseUint(opts.defaultVal, 10, 64)
+		def := tern(err == nil, parsed, uint64(0))
+		if opts.envName != "" {
+			f.Uint64VarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 		} else {
-			f.Uint64Var(ptr, flagName, def, usage)
+			f.Uint64Var(ptr, opts.flagName, def, opts.usage)
 		}
 
 	case reflect.Float64:
-		ptr := fieldVal.Addr().Interface().(*float64)
-		def, _ := strconv.ParseFloat(defaultVal, 64)
-		if envName != "" {
-			f.Float64VarE(ptr, flagName, envName, def, usage)
+		ptr, ok := fieldVal.Addr().Interface().(*float64)
+		if !ok {
+			return fmt.Errorf("invalid type for float64 field")
+		}
+		parsed, err := strconv.ParseFloat(opts.defaultVal, 64)
+		def := tern(err == nil, parsed, 0.0)
+		if opts.envName != "" {
+			f.Float64VarE(ptr, opts.flagName, opts.envName, def, opts.usage)
 		} else {
-			f.Float64Var(ptr, flagName, def, usage)
+			f.Float64Var(ptr, opts.flagName, def, opts.usage)
 		}
 
 	default:
@@ -232,17 +276,4 @@ func validateConfig(cfg any) error {
 	}
 
 	return nil
-}
-
-// getEnvOrDefault returns the environment variable value if set, otherwise the default.
-func getEnvOrDefault(envName, defaultVal string) string {
-	if envName == "" {
-		return defaultVal
-	}
-
-	if val := os.Getenv(envName); val != "" {
-		return val
-	}
-
-	return defaultVal
 }
