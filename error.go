@@ -21,6 +21,6 @@ func (e *RequiredFieldError) Error() string {
 	return fmt.Sprintf("%s: field=%s, flag=%s, env=%s", ErrRequiredField, e.FieldName, e.FlagName, e.EnvName)
 }
 
-func (e *RequiredFieldError) Unwrap() error {
+func (*RequiredFieldError) Unwrap() error {
 	return ErrRequiredField
 }

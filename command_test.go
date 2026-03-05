@@ -224,6 +224,195 @@ func TestCommand_exec(t *testing.T) {
 	}
 }
 
+func TestCommand_SetPersistentFlags(t *testing.T) {
+	helperDisableStdout(t)
+
+	t.Run("Inherited by subcommand", func(t *testing.T) {
+		var verbose bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		sub := &Command{
+			Name: "sub",
+			Run:  func(cmd *Command, args []string) error { return nil },
+		}
+
+		root.AddSubcommands(sub)
+
+		got := sub.execCommand([]string{"-verbose"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+	})
+
+	t.Run("Inherited by grandchild", func(t *testing.T) {
+		var verbose bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		mid := &Command{Name: "mid"}
+		leaf := &Command{
+			Name: "leaf",
+			Run:  func(cmd *Command, args []string) error { return nil },
+		}
+
+		root.AddSubcommands(mid)
+		mid.AddSubcommands(leaf)
+
+		got := leaf.execCommand([]string{"-verbose"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+	})
+
+	t.Run("Works with local flags", func(t *testing.T) {
+		var verbose bool
+		var port int
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		sub := &Command{
+			Name: "sub",
+			SetFlags: func(flags *FlagSet) {
+				flags.IntVar(&port, "port", 8080, "server port")
+			},
+			Run: func(cmd *Command, args []string) error { return nil },
+		}
+
+		root.AddSubcommands(sub)
+
+		got := sub.execCommand([]string{"-verbose", "-port", "9090"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+
+		if port != 9090 {
+			t.Errorf("Expected port to be 9090, got %d", port)
+		}
+	})
+
+	t.Run("Parsed at parent level", func(t *testing.T) {
+		var verbose bool
+		var called bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		sub := &Command{
+			Name: "sub",
+			Run: func(cmd *Command, args []string) error {
+				called = true
+				return nil
+			},
+		}
+
+		root.AddSubcommands(sub)
+
+		// Simulate: args after root flag parsing where -verbose was
+		// already consumed by the parent. Subcommand receives remaining args.
+		got := root.execCommand([]string{"sub"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !called {
+			t.Error("Expected subcommand Run to be called")
+		}
+	})
+
+	t.Run("Multi-level persistent flags", func(t *testing.T) {
+		var verbose bool
+		var format string
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		mid := &Command{
+			Name: "mid",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.StringVar(&format, "format", "text", "output format")
+			},
+		}
+
+		leaf := &Command{
+			Name: "leaf",
+			Run:  func(cmd *Command, args []string) error { return nil },
+		}
+
+		root.AddSubcommands(mid)
+		mid.AddSubcommands(leaf)
+
+		got := leaf.execCommand([]string{"-verbose", "-format", "json"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+
+		if format != "json" {
+			t.Errorf("Expected format to be 'json', got '%s'", format)
+		}
+	})
+
+	t.Run("Available on defining command itself", func(t *testing.T) {
+		var verbose bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+			Run: func(cmd *Command, args []string) error { return nil },
+		}
+
+		got := root.execCommand([]string{"-verbose"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+	})
+}
+
 func helperDisableStdout(t *testing.T) {
 	tmpStdout := os.Stdout
 	tmpStderr := os.Stderr

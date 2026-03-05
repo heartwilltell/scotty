@@ -16,9 +16,9 @@ func (c *Command) usage() {
 
 	root := c.TraverseToRoot()
 	if root.Short != "" {
-		b.WriteString(fmt.Sprintf("%s - %s\n\n", root.Name, root.Short))
+		fmt.Fprintf(&b, "%s - %s\n\n", root.Name, root.Short)
 	} else {
-		b.WriteString(fmt.Sprintf("%s\n\n", root.Name))
+		fmt.Fprintf(&b, "%s\n\n", root.Name)
 	}
 
 	b.WriteString("Usage:\n")
@@ -34,7 +34,7 @@ func (c *Command) usage() {
 }
 
 func printCommandCallUsage(b *strings.Builder, c *Command) {
-	b.WriteString(fmt.Sprintf("  %s ", commandsChain(c)))
+	fmt.Fprintf(b, "  %s ", commandsChain(c))
 
 	if hasFlags(c.Flags()) {
 		b.WriteString("<flags> ")
@@ -66,7 +66,7 @@ func printSubcommands(b *strings.Builder, subcommands map[string]*Command) {
 	}
 
 	for _, c := range sorted {
-		b.WriteString(fmt.Sprintf("  %s %s\n", c.Name+indent(c.Name, longest, 1), c.Short))
+		fmt.Fprintf(b, "  %s %s\n", c.Name+indent(c.Name, longest, 1), c.Short)
 	}
 }
 
@@ -94,16 +94,16 @@ func printFlags(b *strings.Builder, flags *FlagSet) {
 		flags.VisitAll(func(f *flag.Flag) {
 			fType := reflect.TypeOf(f.Value).Elem().Kind().String()
 
-			b.WriteString(fmt.Sprintf("  -%s %s\n",
+			fmt.Fprintf(b, "  -%s %s\n",
 				f.Name+" "+fType+indent(f.Name+" "+fType, longest, 1),
 				f.Usage,
-			))
+			)
 		})
 	}
 }
 
 func printHelpSuggestion(b *strings.Builder, c *Command) {
-	b.WriteString(fmt.Sprintf("\nUse '%s -help' for more information about a command.\n", commandsChain(c)))
+	fmt.Fprintf(b, "\nUse '%s -help' for more information about a command.\n", commandsChain(c))
 }
 
 func sortedSubcommands(subcommands map[string]*Command) []*Command {
