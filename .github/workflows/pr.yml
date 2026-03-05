@@ -39,7 +39,7 @@ jobs:
           go test -v -race -cover ./... -covermode=atomic -coverprofile coverage.out
 
       - name: Upload coverage file
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
 
   lint:
     runs-on: ubuntu-latest
