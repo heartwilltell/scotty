@@ -154,8 +154,49 @@ func (c *Command) inheritPersistentFlags(flags *FlagSet) {
 		c.parent.inheritPersistentFlags(flags)
 	}
 
-	if c.SetPersistentFlags != nil {
-		c.SetPersistentFlags(flags)
+	if c.SetPersistentFlags == nil {
+		return
+	}
+
+	// Snapshot values of flags already parsed on this command's own FlagSet.
+	// SetPersistentFlags re-registers flags via BoolVar/StringVar/etc., which
+	// resets the bound variable to its default. After registration we restore
+	// the snapshot so that already-parsed values survive the re-registration.
+	saved := snapshotSetFlags(c.flags)
+
+	c.SetPersistentFlags(flags)
+
+	restoreSetFlags(flags, saved)
+}
+
+// snapshotSetFlags captures the current name-value pairs of all defined flags.
+// It uses VisitAll (not Visit) because a persistent flag may have been parsed
+// by a different ancestor than the one that defined it.
+func snapshotSetFlags(fs *FlagSet) map[string]string {
+	if fs == nil {
+		return nil
+	}
+
+	var m map[string]string
+
+	fs.VisitAll(func(f *flag.Flag) {
+		if m == nil {
+			m = make(map[string]string)
+		}
+
+		m[f.Name] = f.Value.String()
+	})
+
+	return m
+}
+
+// restoreSetFlags writes previously-snapshotted values back into fs.
+func restoreSetFlags(fs *FlagSet, saved map[string]string) {
+	for name, val := range saved {
+		if f := fs.Lookup(name); f != nil {
+			//nolint:errcheck // Value was already parsed successfully; Set cannot fail here.
+			f.Value.Set(val)
+		}
 	}
 }
 
@@ -176,18 +217,21 @@ func (c *Command) execCommand(args []string) error {
 		}
 	}
 
-	// Check if the positional arguments is a subcommand.
-	if len(args) > 0 && len(c.subcommands) > 0 {
-		if subcommand, ok := c.subcommands[args[0]]; ok {
+	// Check if the remaining positional arguments contain a subcommand.
+	// Use c.Flags().Args() (post-parse remainder) instead of raw args so that
+	// persistent flags consumed during parsing are excluded from the lookup.
+	remaining := c.Flags().Args()
+	if len(remaining) > 0 && len(c.subcommands) > 0 {
+		if subcommand, ok := c.subcommands[remaining[0]]; ok {
 			// Subcommand has been found and should be executed.
-			return subcommand.execCommand(args[1:])
+			return subcommand.execCommand(remaining[1:])
 		}
 
-		// Looks line the argument is not it the list of known subcommands.
+		// Looks like the argument is not in the list of known subcommands.
 		// Let's print the usage and return an error.
 		c.flags.Usage()
 
-		return fmt.Errorf("unknown command: %s", args[0])
+		return fmt.Errorf("unknown command: %s", remaining[0])
 	}
 
 	if c.Run == nil {
