@@ -391,6 +391,126 @@ func TestCommand_SetPersistentFlags(t *testing.T) {
 		}
 	})
 
+	t.Run("Persistent flag between subcommands", func(t *testing.T) {
+		var verbose bool
+		var called bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		sub := &Command{
+			Name: "sub",
+			Run: func(cmd *Command, args []string) error {
+				called = true
+				return nil
+			},
+		}
+
+		root.AddSubcommands(sub)
+
+		got := root.execCommand([]string{"-verbose", "sub"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+
+		if !called {
+			t.Error("Expected subcommand Run to be called")
+		}
+	})
+
+	t.Run("Persistent flag before subcommand in chain", func(t *testing.T) {
+		var verbose bool
+		var called bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		mid := &Command{Name: "mid"}
+		leaf := &Command{
+			Name: "leaf",
+			Run: func(cmd *Command, args []string) error {
+				called = true
+				return nil
+			},
+		}
+
+		root.AddSubcommands(mid)
+		mid.AddSubcommands(leaf)
+
+		got := root.execCommand([]string{"mid", "-verbose", "leaf"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+
+		if !called {
+			t.Error("Expected leaf Run to be called")
+		}
+	})
+
+	t.Run("Multi-level persistent flags between subcommands", func(t *testing.T) {
+		var verbose bool
+		var format string
+		var called bool
+
+		root := &Command{
+			Name: "root",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.BoolVar(&verbose, "verbose", false, "verbose output")
+			},
+		}
+
+		mid := &Command{
+			Name: "mid",
+			SetPersistentFlags: func(flags *FlagSet) {
+				flags.StringVar(&format, "format", "text", "output format")
+			},
+		}
+
+		leaf := &Command{
+			Name: "leaf",
+			Run: func(cmd *Command, args []string) error {
+				called = true
+				return nil
+			},
+		}
+
+		root.AddSubcommands(mid)
+		mid.AddSubcommands(leaf)
+
+		got := root.execCommand([]string{"mid", "-verbose", "-format", "json", "leaf"})
+		if got != nil {
+			t.Fatalf("Unexpected error: %v", got)
+		}
+
+		if !verbose {
+			t.Error("Expected verbose to be true, got false")
+		}
+
+		if format != "json" {
+			t.Errorf("Expected format to be 'json', got '%s'", format)
+		}
+
+		if !called {
+			t.Error("Expected leaf Run to be called")
+		}
+	})
+
 	t.Run("Available on defining command itself", func(t *testing.T) {
 		var verbose bool
 
