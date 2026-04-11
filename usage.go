@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"reflect"
-	"sort"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -113,8 +113,8 @@ func sortedSubcommands(subcommands map[string]*Command) []*Command {
 		commands = append(commands, cmd)
 	}
 
-	sort.Slice(commands, func(i, j int) bool {
-		return commands[i].Name < commands[j].Name
+	slices.SortFunc(commands, func(a, b *Command) int {
+		return strings.Compare(a.Name, b.Name)
 	})
 
 	return commands
