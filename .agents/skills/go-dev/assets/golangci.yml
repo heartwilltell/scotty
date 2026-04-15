@@ -1,11 +1,15 @@
 version: "2"
+
 run:
-  go: "1.26"
+  go: "1.24"
   tests: false # include test files or not, default is true.
+  timeout: 5m
+  modules-download-mode: readonly
 
 linters:
   default: none
   enable:
+    # Code quality and style linters.
     - asasalint # Check for pass []any as any in variadic func(...any).
     - asciicheck # Checks that your code does not contain non-ASCII identifiers.
     - bodyclose # Checks whether HTTP response body is closed successfully.
@@ -25,6 +29,30 @@ linters:
     - unconvert # Remove unnecessary type conversions.
     - unparam # Reports unused function parameters.
     - unused # Checks Go code for unused constants, variables, functions and types.
+    
+    # Quality-improving linters.
+    - exhaustive # Checks exhaustiveness of enum switch statements.
+    - gochecknoinits # Checks that no init functions are used in Go code.
+    - goconst # Finds repeated strings that could be constants.
+    - gocognit # Measures and limits cognitive complexity of functions.
+    - gocyclo # Computes and checks the cyclomatic complexity of functions.
+    - goprintffuncname # Checks that printf-like functions are named with `f` at the end.
+    - misspell # Finds commonly misspelled English words in comments.
+    - nakedret # Finds naked returns in functions greater than a specified function length.
+    - nestif # Reports deeply nested if statements.
+    - nilnil # Detects suspicious nil checks.
+    - nlreturn # Suggests fixing line breaks before return statements.
+    - perfsprint # Detects inefficient use of fmt.Sprint* functions.
+    - reassign # Checks for reassigned variables that could be avoided.
+    - rowserrcheck # Checks that Err of rows.Err() are checked.
+    - sqlclosecheck # Checks that sql.Rows and sql.Stmt are closed.
+    - mnd # An analyzer to detect magic numbers (renamed from gomnd).
+    - thelper # Analyzes test helper functions.
+    - tparallel # Finds tests that are missing t.Parallel() calls.
+    - usestdlibvars # Detects the possibility to use variables/constants from the Go standard library.
+    - whitespace # Tool for detection of leading and trailing whitespace.
+    - wrapcheck # Checks that errors returned from external packages are wrapped.
+    - wsl_v5 # Enforces empty lines at the right places (updated version).
 
   settings:
     dogsled:
@@ -41,6 +69,9 @@ linters:
       # List of functions to exclude from checking, where each entry is a single function to exclude.
       # See https://github.com/kisielk/errcheck#excluding-functions for details.
       exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintln
+        - fmt.Fprintf
         - io/ioutil.ReadFile
         - io.Copy(*bytes.Buffer)
         - io.Copy(os.Stdout)
@@ -58,7 +89,6 @@ linters:
       # Which checks should be disabled; can't be combined with 'enabled-checks'.
       disabled-checks:
         - whyNoLint
-        - unnamedResult
       # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
       # See https://github.com/go-critic/go-critic#usage -> section "Tags".
       enabled-tags:
@@ -145,7 +175,7 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#argument-limit
         - name: argument-limit
           arguments:
-            - 5
+            - 10 
           severity: warning
           disabled: false
 
@@ -207,13 +237,13 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
         - name: confusing-naming
           severity: warning
-          disabled: true
+          disabled: false
 
         # Function or methods that return multiple, no named, values of the same type could induce error.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-results
         - name: confusing-results
           severity: warning
-          disabled: true
+          disabled: false
 
         # The rule spots logical expressions that evaluate always to the same value.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#constant-logical-expr
@@ -242,7 +272,7 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#cyclomatic
         - name: cyclomatic
           arguments:
-            - 35
+            - 15
           severity: warning
           disabled: false
 
@@ -373,7 +403,7 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
         - name: flag-parameter
           severity: warning
-          disabled: true
+          disabled: false
 
         # Functions returning too many results can be hard to understand/use.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-result-limit
@@ -446,7 +476,7 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#line-length-limit
         - name: line-length-limit
           arguments:
-            - 150
+            - 160
           severity: warning
           disabled: false
 
@@ -496,7 +526,7 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#package-comments
         - name: package-comments
           severity: warning
-          disabled: false
+          disabled: true
 
         # This rule suggests a shorter way of writing ranges that do not use the second value.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#range
@@ -680,50 +710,120 @@ linters:
           severity: warning
           disabled: true
 
-  exclusions:
-    generated: lax
-    presets:
-      - comments
-      - common-false-positives
-      - legacy
-      - std-error-handling
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    # New linter settings for enhanced code quality
+    depguard:
+      # Rules configuration for depguard
+      rules:
+        main:
+          deny:
+            - pkg: "github.com/golangci/golangci-lint"
+              desc: "use golangci-lint.run instead"
 
-# Formatters configuration.
-formatters:
-  enable:
-    # - gci # Checks if code and import statements are formatted, with additional rules.
-    - gofmt # Checks if the code is formatted according to 'gofmt' command.
-    # - gofumpt # Checks if code and import statements are formatted, with additional rules.
-    - goimports # Checks if the code and import statements are formatted according to the 'goimports' command.
-    - golines # Checks if code is formatted, and fixes long lines.
-  settings:
-    gci:
-      # Sections specifies the order of import sections.
-      # Default: ["standard", "default", "blank", "dot"]
-      sections:
-        - standard
-        - default
-        - blank
-        - dot
-      # Custom order of sections.
-      # Default: false
-      custom-order: false
+    dupl:
+      # Threshold for code duplication detection
+      threshold: 100
 
-    golines:
-      # Maximum line length.
-      # Default: 120
-      max-len: 120
-      # Reformat comments.
-      # Default: true
-      reformat-tags: true
+    exhaustive:
+      # Check exhaustiveness of enum switch statements
+      default-signifies-exhaustive: false
+      ignore-enum-members: "^_$"
+      ignore-enum-types: "^(Error|StatusCode)$"
+      package-scope-only: false
+      explicit-exhaustive-map: false
+      explicit-exhaustive-switch: false
 
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    funlen:
+      # Function length limits
+      lines: 100
+      statements: 50
+
+    gocognit:
+      # Cognitive complexity threshold
+      min-complexity: 20
+
+    gocyclo:
+      # Cyclomatic complexity threshold
+      min-complexity: 15
+
+
+    misspell:
+      # Spell checking
+      locale: US
+
+    nakedret:
+      # Naked return detection
+      max-func-lines: 30
+
+    nestif:
+      # Nested if statements
+      min-complexity: 5
+
+    nlreturn:
+      # New line before return
+      block-size: 2
+
+
+    perfsprint:
+      # Performance sprint checks
+      int-conversion: true
+      err-error: true
+      errorf: true
+
+    reassign:
+      # Variable reassignment checks
+      patterns:
+        - "err.*:="
+
+    testpackage:
+      # Test package checking
+      skip-regexp: (export|internal)_test\.go
+
+    thelper:
+      # Test helper checking
+      test:
+        first: true
+        name: true
+        begin: true
+      benchmark:
+        first: true
+        name: true
+        begin: true
+      tb:
+        first: true
+        name: true
+        begin: true
+
+
+    usestdlibvars:
+      http-status-code: true
+      http-method: true
+      time-weekday: true
+      time-month: true
+      time-layout: true
+      crypto-hash: true
+      default-rpc-path: true
+      constant-kind: true
+      tls-signature-scheme: true
+
+    varnamelen:
+      # Variable name length
+      min-name-length: 2
+      ignore-names: ["^_$"]
+      ignore-decls: []
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+
+    whitespace:
+      # Whitespace checking
+      multi-if: false
+      multi-func: false
+
+    wrapcheck: {}
+
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+      disable:
+        - decl
