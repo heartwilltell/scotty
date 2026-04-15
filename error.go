@@ -8,7 +8,12 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 // ErrRequiredField is returned when a required field is not set.
-const ErrRequiredField Error = "required field not set"
+const (
+	ErrRequiredField           Error = "required field not set"
+	ErrInvalidLineEqualSign    Error = "invalid line: missing '='"
+	ErrUnterminatedSingleQuote Error = "unterminated single-quoted value"
+	ErrUnterminatedDoubleQuote Error = "unterminated double-quoted value"
+)
 
 // RequiredFieldError provides details about which required field was not set.
 type RequiredFieldError struct {

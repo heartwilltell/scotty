@@ -92,19 +92,19 @@ func parseDotenvFile(path string) (map[string]string, error) {
 // parseDotenvLine parses a single non-empty, non-comment line into a
 // key/value pair, using existing for variable expansion.
 func parseDotenvLine(line string, existing map[string]string) (string, string, error) {
-	line = strings.TrimSpace(strings.TrimPrefix(line, "export "))
+	trimmed := strings.TrimSpace(strings.TrimPrefix(line, "export "))
 
-	eq := strings.IndexByte(line, '=')
+	eq := strings.IndexByte(trimmed, '=')
 	if eq <= 0 {
-		return "", "", fmt.Errorf("invalid line: missing '='")
+		return "", "", ErrInvalidLineEqualSign
 	}
 
-	key := strings.TrimSpace(line[:eq])
+	key := strings.TrimSpace(trimmed[:eq])
 	if !isValidDotenvKey(key) {
 		return "", "", fmt.Errorf("invalid key: %q", key)
 	}
 
-	value, err := parseDotenvValue(strings.TrimLeft(line[eq+1:], " \t"), existing)
+	value, err := parseDotenvValue(strings.TrimLeft(trimmed[eq+1:], " \t"), existing)
 	if err != nil {
 		return "", "", err
 	}
@@ -142,7 +142,7 @@ func parseDotenvValue(raw string, existing map[string]string) (string, error) {
 	case '\'':
 		end := strings.IndexByte(raw[1:], '\'')
 		if end < 0 {
-			return "", fmt.Errorf("unterminated single-quoted value")
+			return "", ErrUnterminatedSingleQuote
 		}
 
 		return raw[1 : 1+end], nil
@@ -167,16 +167,21 @@ func parseDoubleQuoted(raw string, existing map[string]string) (string, error) {
 		}
 
 		if c == '\\' && i+1 < len(raw) {
-			b.WriteByte(unescapeDotenvByte(raw[i+1]))
+			if err := b.WriteByte(unescapeDotenvByte(raw[i+1])); err != nil {
+				return "", fmt.Errorf("failed to write byte: %w", err)
+			}
+
 			i++
 
 			continue
 		}
 
-		b.WriteByte(c)
+		if err := b.WriteByte(c); err != nil {
+			return "", fmt.Errorf("write byte: %w", err)
+		}
 	}
 
-	return "", fmt.Errorf("unterminated double-quoted value")
+	return "", ErrUnterminatedDoubleQuote
 }
 
 // unescapeDotenvByte returns the decoded byte for a backslash escape.
@@ -199,11 +204,13 @@ func unescapeDotenvByte(c byte) byte {
 // parseUnquoted parses an unquoted value, stripping inline "# comment"
 // suffixes and trailing whitespace, then expanding variables.
 func parseUnquoted(raw string, existing map[string]string) string {
+	toTrim := raw
+
 	if hash := strings.IndexByte(raw, '#'); hash >= 0 {
-		raw = raw[:hash]
+		toTrim = raw[:hash]
 	}
 
-	return expandDotenvVars(strings.TrimRight(raw, " \t"), existing)
+	return expandDotenvVars(strings.TrimRight(toTrim, " \t"), existing)
 }
 
 // expandDotenvVars expands $VAR and ${VAR} references using previously

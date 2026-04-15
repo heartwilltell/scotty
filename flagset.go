@@ -105,7 +105,6 @@ func (f *FlagSet) DurationVarE(p *time.Duration, flagName, envName string, value
 	f.DurationVar(p, flagName, tern(err == nil, parsed, value), usage)
 }
 
-//nolint:revive // flag-parameter is ok here.
 func tern[T any](cond bool, t, f T) T {
 	if cond {
 		return t

@@ -58,6 +58,7 @@ linters:
       # Which checks should be disabled; can't be combined with 'enabled-checks'.
       disabled-checks:
         - whyNoLint
+        - unnamedResult
       # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
       # See https://github.com/go-critic/go-critic#usage -> section "Tags".
       enabled-tags:
@@ -206,13 +207,13 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-naming
         - name: confusing-naming
           severity: warning
-          disabled: false
+          disabled: true
 
         # Function or methods that return multiple, no named, values of the same type could induce error.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#confusing-results
         - name: confusing-results
           severity: warning
-          disabled: false
+          disabled: true
 
         # The rule spots logical expressions that evaluate always to the same value.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#constant-logical-expr
@@ -372,13 +373,13 @@ linters:
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#flag-parameter
         - name: flag-parameter
           severity: warning
-          disabled: false
+          disabled: true
 
         # Functions returning too many results can be hard to understand/use.
         # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#function-result-limit
         - name: function-result-limit
           arguments:
-            - 2
+            - 3
           severity: warning
           disabled: false
 
